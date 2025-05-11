@@ -1,0 +1,9 @@
+datasets
+__pycache__
+*.pyc
+checkpoints
+*.pth
+*.bin
+*.csv
+*.json
+*.examine
