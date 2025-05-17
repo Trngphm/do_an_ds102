@@ -1,0 +1,13 @@
+dataset:
+  train:
+    path: datasets/clean_data/train_data.csv
+  test:
+    path: datasets/clean_data/test_data.csv
+
+model:
+  name: SVM_model
+  architecture: SVM
+  kernel: "linear"
+  C: 1.0
+
+checkpoint_path: checkpoints/awa2_svm

@@ -1,7 +1,6 @@
 from typing import Any, Dict, Iterable, Iterator, Tuple
 from tabulate import tabulate
 
-
 class Registry(Iterable[Tuple[str, Any]]):
     def __init__(self, name: str) -> None:
         self._name: str = name
@@ -19,11 +18,11 @@ class Registry(Iterable[Tuple[str, Any]]):
                 name = func_or_class.__name__
                 self._do_register(name, func_or_class)
                 return func_or_class
-
             return deco
-
-        name = obj.__name__
-        self._do_register(name, obj)
+        else:
+            name = obj.__name__
+            self._do_register(name, obj)
+            return obj  # <-- bạn thiếu dòng này
 
     def get(self, name: str) -> Any:
         ret = self._obj_map.get(name)

@@ -26,7 +26,7 @@ class Preprocessing():
         self.labels_txt = zip_internal_dir + "AwA2-labels.txt"
         self.filenames_txt = zip_internal_dir + "AwA2-filenames.txt"
 
-    def forward(self ):
+    def forward(self):
         # === 2. Đọc features từ zip hoặc .npy ===
         if not os.path.exists(self.npy_path):
             print(" Đang đọc features từ .zip (mất vài phút)...")
