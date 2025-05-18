@@ -19,7 +19,7 @@ class MLClassificationTask():
         self.train_path = config.dataset.train.path
         self.test_path = config.dataset.test.path
 
-        self.model = build_model(config)  
+        self.model = build_model(config.model)  
         self.load_datasets()
 
     def load_datasets(self):
@@ -50,19 +50,6 @@ class MLClassificationTask():
         self.report = report
         self.accuracy = acc
 
-        # Tạo và lưu ma trận nhầm lẫn
-        cm = confusion_matrix(y_test, y_pred)
-        disp = ConfusionMatrixDisplay(confusion_matrix=cm)
-
-        fig, ax = plt.subplots(figsize=(10, 10))
-        disp.plot(ax=ax, cmap='Blues', xticks_rotation=45)
-        plt.title("Confusion Matrix")
-        plt.tight_layout()
-
-        cm_path = os.path.join(self.checkpoint_path, "confusion_matrix.png")
-        plt.savefig(cm_path)
-        plt.close()
-        print(f"Saved confusion matrix to {cm_path}")
         return acc, report
 
     def save_model(self):
@@ -97,4 +84,19 @@ class MLClassificationTask():
         # Lưu kết quả ra file json
         json.dump(results, open(os.path.join(self.checkpoint_path, "predictions.json"), "w+"), indent=4)
         print("Saved predictions to predictions.json")
+
+        
+        # Tạo và lưu ma trận nhầm lẫn
+        cm = confusion_matrix(y_test, y_pred)
+        disp = ConfusionMatrixDisplay(confusion_matrix=cm)
+
+        fig, ax = plt.subplots(figsize=(10, 10))
+        disp.plot(ax=ax, cmap='Blues', xticks_rotation=45)
+        plt.title("Confusion Matrix")
+        plt.tight_layout()
+
+        cm_path = os.path.join(self.checkpoint_path, "confusion_matrix.png")
+        plt.savefig(cm_path)
+        plt.close()
+        print(f"Saved confusion matrix to {cm_path}")
         return results

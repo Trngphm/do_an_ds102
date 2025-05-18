@@ -27,7 +27,7 @@ def main(config):
     task = task_class(config)
 
     # Gán model từ builder vào task
-    task.model = build_model(config)
+    task.model = build_model(config.model)
 
     # Train
     task.train()
