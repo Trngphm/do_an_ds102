@@ -5,9 +5,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from io import TextIOWrapper
-from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import PowerTransformer
+from imblearn.over_sampling import RandomOverSampler
 import csv
 from builders.task_builder import META_TASK
 
@@ -54,7 +55,7 @@ class Preprocessing():
         class_map = pd.read_csv(self.classes_txt_path, sep="\t", header=None, names=['id', 'name'])
 
         # === 4. Tạo DataFrame ===
-        df = pd.DataFrame(features)
+        df = pd.DataFrame(features, columns=[f"f{i}" for i in range(features.shape[1])])
         df['label'] = labels
         df['filename'] = filenames
         df['class_name'] = df['filename'].apply(lambda x: x.split('_')[0])
@@ -84,19 +85,37 @@ class Preprocessing():
         print(" Dòng trùng lặp:", df.duplicated().sum())
 
         # === 8. Chuẩn hóa ===
-        scaler = StandardScaler()
+        scaler = PowerTransformer(method='yeo-johnson', standardize=True)
         X_scaled = scaler.fit_transform(features)
         scaled_df = pd.DataFrame(X_scaled, columns=[f'f{i}' for i in range(features.shape[1])])
-        df_scaled = pd.concat([scaled_df, df[['label', 'filename', 'class_name', 'class_fullname', 'split']]], axis=1)
 
-        # === 9. PCA ===
+        # === 8. Oversampling tập train để cân bằng lớp ===
+        X_train = train_df.iloc[:, :-4]  # loại bỏ label, filename, class_name, class_fullname
+        y_train = train_df['label']
+        ros = RandomOverSampler(random_state=42)
+        X_resampled, y_resampled = ros.fit_resample(X_train, y_train)
+
+        # Tạo lại DataFrame đã oversample
+        df_resampled = pd.DataFrame(X_resampled, columns=X_train.columns)
+        df_resampled['label'] = y_resampled
+        df_resampled['split'] = 'train_oversampled'
+
+        # === 9. Ghép test và train đã oversample ===
+        test_df['split'] = 'test'
+        final_df = pd.concat([df_resampled, test_df], ignore_index=True)
+
+        # Thêm tên lớp
+        final_df['class_name'] = final_df['label'].map(lambda x: id2name[x])
+        final_df['class_fullname'] = final_df['class_name']
+
+        # === 10. PCA cho trực quan hóa ===
         pca = PCA(n_components=2)
-        X_pca = pca.fit_transform(scaled_df)
-        df_scaled['PCA1'] = X_pca[:, 0]
-        df_scaled['PCA2'] = X_pca[:, 1]
+        X_pca = pca.fit_transform(final_df.iloc[:, :-5])
+        final_df['PCA1'] = X_pca[:, 0]
+        final_df['PCA2'] = X_pca[:, 1]
 
-        # === 10. Lưu dữ liệu ===
+        # === . Lưu dữ liệu ===
         output_path = "datasets/preprocessing_data/clean_data.csv"
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        df_scaled.to_csv(output_path, index=False, quoting=csv.QUOTE_ALL)
+        final_df.to_csv(output_path, index=False, quoting=csv.QUOTE_ALL)
         print(" Đã lưu dữ liệu xử lý tại:", output_path)
