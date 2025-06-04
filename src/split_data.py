@@ -1,9 +1,7 @@
 import pandas as pd
-from builders.task_builder import META_TASK
 import os
+from sklearn.model_selection import train_test_split
 
-
-@META_TASK.register()
 class SplitData():
     def __init__(self):
         file_path = "datasets/preprocessing_data/clean_data.csv"
@@ -21,12 +19,15 @@ class SplitData():
         feature_columns = [col for col in df.columns if col.startswith('f')]
         selected_columns = feature_columns + ['label']
 
-        # Tạo tập train và test dựa vào cột 'split'
-        train_df = df[df['split'] == 'train'][selected_columns]
-        test_df = df[df['split'] == 'test'][selected_columns]
+        # Lấy dữ liệu cần dùng
+        data = df[selected_columns]
 
-        # Lưu train data
+        # Chia dữ liệu: 70% train, 15% val, 15% test
+        train_df, temp_df = train_test_split(data, test_size=0.3, random_state=42, shuffle=True)
+        val_df, test_df = train_test_split(temp_df, test_size=0.5, random_state=42)
+
+        # Lưu train, val, test
         train_df.to_csv("datasets/clean_data/train_data.csv", index=False)
-
-        # Lưu test data
+        val_df.to_csv("datasets/clean_data/dev_data.csv", index=False)
         test_df.to_csv("datasets/clean_data/test_data.csv", index=False)
+
