@@ -2,120 +2,119 @@ import os
 import zipfile
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
 from io import TextIOWrapper
-from sklearn.decomposition import PCA
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import PowerTransformer
 from imblearn.over_sampling import RandomOverSampler
 import csv
+import random
 from builders.task_builder import META_TASK
 
 @META_TASK.register()
 class Preprocessing():
     def __init__(self):
-         # === 1. Thiết lập đường dẫn ===
-        data_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../datasets/raw_data/"))
-        self.zip_path = os.path.join(data_dir, "AwA2-features.zip")
-        self.npy_path = os.path.join(data_dir, "AwA2-features.npy")
-        self.classes_txt_path = os.path.join(data_dir, "classes.txt")  # File ngoài .zip
-
-        # Các đường dẫn nội bộ trong file zip
-        zip_internal_dir = "Animals_with_Attributes2/Features/ResNet101/"
-        self.features_txt = zip_internal_dir + "AwA2-features.txt"
-        self.labels_txt = zip_internal_dir + "AwA2-labels.txt"
-        self.filenames_txt = zip_internal_dir + "AwA2-filenames.txt"
+        self.data_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../datasets/raw_data/"))
+        self.zip_path = os.path.join(self.data_dir, "AwA2-features.zip")
+        self.npy_path = os.path.join(self.data_dir, "AwA2-features.npy")
+        self.classes_txt_path = os.path.join(self.data_dir, "classes.txt")
+        self.zip_internal_dir = "Animals_with_Attributes2/Features/ResNet101/"
+        self.features_txt = self.zip_internal_dir + "AwA2-features.txt"
+        self.labels_txt = self.zip_internal_dir + "AwA2-labels.txt"
+        self.filenames_txt = self.zip_internal_dir + "AwA2-filenames.txt"
 
     def forward(self):
-        # === 2. Đọc features từ zip hoặc .npy ===
-        if not os.path.exists(self.npy_path):
-            print(" Đang đọc features từ .zip (mất vài phút)...")
-            features = []
-            with zipfile.ZipFile(self.zip_path) as zf:
-                with zf.open(self.features_txt) as f:
-                    for line in TextIOWrapper(f, encoding='utf-8'):
-                        features.append([float(x) for x in line.strip().split()])
-            features = np.array(features)
-            os.makedirs(os.path.dirname(self.npy_path), exist_ok=True)
-            np.save(self.npy_path, features)
-            print(" Đã lưu file features.npy")
-        else:
-            features = np.load(self.npy_path)
-            print(" Đã tải features từ .npy")
+      # 1. Load features
+      if not os.path.exists(self.npy_path):
+          print("Đang đọc features từ .zip...")
+          features = []
+          with zipfile.ZipFile(self.zip_path) as zf:
+              with zf.open(self.features_txt) as f:
+                  for line in TextIOWrapper(f, encoding='utf-8'):
+                      features.append([float(x) for x in line.strip().split()])
+          features = np.array(features)
+          np.save(self.npy_path, features)
+      else:
+          features = np.load(self.npy_path)
 
-        # === 3. Đọc các file nhãn và metadata từ zip và local ===
-        with zipfile.ZipFile(self.zip_path) as zf:
-            with zf.open(self.labels_txt) as f:
-                labels = np.loadtxt(f).astype(int) - 1
-            with zf.open(self.filenames_txt) as f:
-                filenames = [line.strip() for line in TextIOWrapper(f, encoding='utf-8')]
+      # 2. Load labels & filenames
+      with zipfile.ZipFile(self.zip_path) as zf:
+          with zf.open(self.labels_txt) as f:
+              labels = np.loadtxt(f).astype(int) - 1
+          with zf.open(self.filenames_txt) as f:
+              filenames = [line.strip() for line in TextIOWrapper(f, encoding='utf-8')]
 
-        # Đọc file classes.txt từ hệ thống file, không phải từ zip
-        class_map = pd.read_csv(self.classes_txt_path, sep="\t", header=None, names=['id', 'name'])
+      # 3. Load class names
+      class_map = pd.read_csv(self.classes_txt_path, sep="\t", header=None, names=['id', 'name'])
+      class_map['name'] = class_map['name'].str.replace('+', ' ', regex=False)
+      class_map['id'] = class_map['id'] - 1
+      id2name = dict(zip(class_map['id'], class_map['name']))
 
-        # === 4. Tạo DataFrame ===
-        df = pd.DataFrame(features, columns=[f"f{i}" for i in range(features.shape[1])])
-        df['label'] = labels
-        df['filename'] = filenames
-        df['class_name'] = df['filename'].apply(lambda x: x.split('_')[0])
+      # 4. Tạo DataFrame gốc
+      feature_cols = [f"f{i}" for i in range(features.shape[1])]
+      df = pd.DataFrame(features, columns=feature_cols)
+      df['label'] = labels
+      df['filename'] = filenames
+      df['class_name'] = df['label'].map(id2name)  # Gán class_name từ label
 
-        # === 5. Ghép tên lớp đầy đủ ===
-        class_map['name'] = class_map['name'].str.replace('+', ' ', regex=False)
-        class_map['id'] = class_map['id'] - 1
-        id2name = dict(zip(class_map['id'], class_map['name']))
-        df['class_fullname'] = df['label'].map(id2name)
+      # 5. Chia dữ liệu
+      train_df, temp_df = train_test_split(df, test_size=0.3, stratify=df['label'], random_state=42)
+      val_df, test_df = train_test_split(temp_df, test_size=0.5, stratify=temp_df['label'], random_state=42)
 
-        # === 6. Phân chia train/test ===
-        train_df, test_df = train_test_split(df, test_size=0.2, stratify=df['class_fullname'], random_state=42)
+      # 6. Chuẩn hóa
+      print("Đang chuẩn hóa bằng PowerTransformer...")
+      scaler = PowerTransformer(method='yeo-johnson', standardize=True)
+      X_train_scaled = scaler.fit_transform(train_df[feature_cols])
+      X_val_scaled = scaler.transform(val_df[feature_cols])
+      X_test_scaled = scaler.transform(test_df[feature_cols])
 
-        # Gán cột 'split' cho từng tập
-        train_df['split'] = 'train'
-        test_df['split'] = 'test'
+      # 7. Oversample trên tập train
+      print("Đang oversample tập train để cân bằng lớp...")
+      y_train = train_df['label']
+      ros = RandomOverSampler(random_state=42)
+      X_resampled, y_resampled = ros.fit_resample(X_train_scaled, y_train)
 
-        # Kết hợp lại
-        df = pd.concat([train_df, test_df], ignore_index=True)
+      # Lấy lại filename cho tập train (bằng cách lặp lại cho oversample)
+      label_to_filenames = train_df.groupby('label')['filename'].apply(list).to_dict()
+      resampled_filenames = []
 
-        # Kiểm tra lại xem cả hai tập 'train' và 'test' có trong DataFrame df không
-        print(df['split'].value_counts())  # Kiểm tra số lượng phân chia
+      for lbl in y_resampled:
+          resampled_filenames.append(random.choice(label_to_filenames[lbl]))
 
+      train_oversampled = pd.DataFrame(X_resampled, columns=feature_cols)
+      train_oversampled['label'] = y_resampled
+      train_oversampled['class_name'] = y_resampled.map(id2name)
+      train_oversampled['filename'] = resampled_filenames
 
-        # === 7. Kiểm tra dữ liệu ===
-        print(" Thiếu dữ liệu:\n", df.isnull().sum())
-        print(" Dòng trùng lặp:", df.duplicated().sum())
+      # 8. Gán lại cho val/test
+      val_df_scaled = pd.DataFrame(X_val_scaled, columns=feature_cols)
+      val_df_scaled['label'] = val_df['label'].values
+      val_df_scaled['filename'] = val_df['filename'].values
+      val_df_scaled['class_name'] = val_df['class_name'].values
 
-        # === 8. Chuẩn hóa ===
-        scaler = PowerTransformer(method='yeo-johnson', standardize=True)
-        X_scaled = scaler.fit_transform(features)
-        scaled_df = pd.DataFrame(X_scaled, columns=[f'f{i}' for i in range(features.shape[1])])
+      test_df_scaled = pd.DataFrame(X_test_scaled, columns=feature_cols)
+      test_df_scaled['label'] = test_df['label'].values
+      test_df_scaled['filename'] = test_df['filename'].values
+      test_df_scaled['class_name'] = test_df['class_name'].values
 
-        # === 8. Oversampling tập train để cân bằng lớp ===
-        X_train = train_df.iloc[:, :-4]  # loại bỏ label, filename, class_name, class_fullname
-        y_train = train_df['label']
-        ros = RandomOverSampler(random_state=42)
-        X_resampled, y_resampled = ros.fit_resample(X_train, y_train)
+      # 9. Lưu lại
+      # Gắn nhãn tập
+      train_oversampled['split'] = 'train'
+      val_df_scaled['split'] = 'dev'
+      test_df_scaled['split'] = 'test'
 
-        # Tạo lại DataFrame đã oversample
-        df_resampled = pd.DataFrame(X_resampled, columns=X_train.columns)
-        df_resampled['label'] = y_resampled
-        df_resampled['split'] = 'train_oversampled'
+      os.makedirs("datasets/clean_data", exist_ok=True)
+      train_oversampled.to_csv("datasets/clean_data/train_data.csv", index=False)
+      val_df_scaled.to_csv("datasets/clean_data/dev_data.csv", index=False)
+      test_df_scaled.to_csv("datasets/clean_data/test_data.csv", index=False)
 
-        # === 9. Ghép test và train đã oversample ===
-        test_df['split'] = 'test'
-        final_df = pd.concat([df_resampled, test_df], ignore_index=True)
+      print("Đã lưu train/dev/test đã xử lý tại datasets/clean_data/")
 
-        # Thêm tên lớp
-        final_df['class_name'] = final_df['label'].map(lambda x: id2name[x])
-        final_df['class_fullname'] = final_df['class_name']
+      # Gộp tất cả thành một DataFrame
+      full_df = pd.concat([train_oversampled, val_df_scaled, test_df_scaled], ignore_index=True)
 
-        # === 10. PCA cho trực quan hóa ===
-        pca = PCA(n_components=2)
-        X_pca = pca.fit_transform(final_df.iloc[:, :-5])
-        final_df['PCA1'] = X_pca[:, 0]
-        final_df['PCA2'] = X_pca[:, 1]
+      # Lưu vào 1 file duy nhất
+      output_path = "datasets/preprocessing_data/clean_data.csv"
+      os.makedirs(os.path.dirname(output_path), exist_ok=True)
+      full_df.to_csv(output_path, index=False)
 
-        # === . Lưu dữ liệu ===
-        output_path = "datasets/preprocessing_data/clean_data.csv"
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        final_df.to_csv(output_path, index=False, quoting=csv.QUOTE_ALL)
-        print(" Đã lưu dữ liệu xử lý tại:", output_path)
+      print(f"Đã lưu toàn bộ dữ liệu đã xử lý tại {output_path}")
