@@ -7,12 +7,12 @@ dataset:
     path: datasets/clean_data/test_data.csv
     
 model:
-  name: LogisticRegression
-  architecture: Logistic_Regression
+  name: LogisticRegression_model
+  architecture: MyLogisticRegression
   params:
-    C: [0.001, 0.01, 0.1, 1, 10, 100]
+    C: [0.01, 0.1, 1, 10, 100]
     penalty: ["l1", "l2"]
-    solver: ["newton-cg", "lbfgs", "saga"]
+    solver: ["newton-cg", "lbfgs", "saga"]  
   tuning_method: "grid"
 
 checkpoint_path: checkpoints/awa2_logistic
