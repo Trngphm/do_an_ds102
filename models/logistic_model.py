@@ -1,37 +1,41 @@
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
 from builders.model_builder import META_ARCHITECTURE  
-
+import joblib
 
 @META_ARCHITECTURE.register()
-class Logistic_Regression:
+class LogisticRegression:
     def __init__(self, config):
-        # Khởi tạo mô hình Logistic Regression
-        self.model = LogisticRegression(
-            penalty = config.penalty,
-            C = config.C,
-            solver = config.solver,
-            max_iter = config.max_iter
+        self.config = config
+        self.lr = LogisticRegression(
+            C=getattr(config, 'C', 1.0),
+            penalty=getattr(config, 'penalty', 'l2'),
+            solver=getattr(config, 'solver', 'lbfgs'),
+            max_iter=getattr(config, 'max_iter', 1000),
+            random_state=42
         )
-
+    
+    def get_base_model(self):
+        return LogisticRegression(random_state=42, max_iter=1000)
+    
+    def update_params(self, params):
+        self.lr = LogisticRegression(**params, random_state=42, max_iter=1000)
+    
+    def set_model(self, model):
+        self.lr = model
+    
     def fit(self, X, y):
-        self.model.fit(X, y)
-        print("Training completed.")
-
-        # Tính accuracy trên tập train
-        y_pred = self.model.predict(X)
-        acc = accuracy_score(y, y_pred)
-        print(f"Training accuracy: {acc:.4f}")
-
-        return self.model
-
+        self.lr.fit(X, y)
+        print("Logistic Regression Training completed.")
+        print(f"Number of iterations: {self.lr.n_iter_}")
+        
+        return self.lr
+    
     def predict(self, X):
-        return self.model.predict(X)
-
+        return self.lr.predict(X)
+    
     def save(self, path):
-        import joblib
-        joblib.dump(self.model, path)
-
+        joblib.dump(self.lr, path)
+    
     def load(self, path):
-        import joblib
-        self.model = joblib.load(path)
+        self.lr = joblib.load(path)

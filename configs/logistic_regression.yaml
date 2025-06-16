@@ -1,15 +1,18 @@
 dataset:
   train:
     path: datasets/clean_data/train_data.csv
+  dev:
+    path: datasets/clean_data/dev_data.csv
   test:
     path: datasets/clean_data/test_data.csv
     
 model:
-  name: LogisticRegression_model
+  name: LogisticRegression
   architecture: Logistic_Regression
-  penalty: 12
-  C: 1.0
-  solver: "lbfgs"
-  max_iter: 1000
+  params:
+    C: [0.001, 0.01, 0.1, 1, 10, 100]
+    penalty: ["l1", "l2"]
+    solver: ["newton-cg", "lbfgs", "saga"]
+  tuning_method: "grid"
 
 checkpoint_path: checkpoints/awa2_logistic

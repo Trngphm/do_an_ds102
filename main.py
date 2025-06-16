@@ -16,11 +16,11 @@ def load_config(config_path):
 
 
 def main(config):
-    preprocessing = Preprocessing()
-    preprocessing.forward()
+    # preprocessing = Preprocessing()
+    # preprocessing.forward()
 
-    split_data = SplitData()
-    split_data.forward()
+    # split_data = SplitData()
+    # split_data.forward()
 
     # Build task
     task_class = META_TASK.get("MLClassificationTask")
@@ -32,9 +32,11 @@ def main(config):
     # Train
     task.train()
 
-    # Evaluate
-    acc, report = task.evaluate()
+    # Evaluate trên dev
+    dev_acc, dev_f1, dev_report = task.evaluate(split="dev")
 
+    # Evaluate
+    acc, f1, report = task.evaluate(split="test")
     # Save model
     task.save_model()
 
@@ -54,3 +56,5 @@ if __name__ == "__main__":
     config = load_config(args.config)
     main(config)
 
+# python3 main.py --config configs/SVM.yaml
+# pip install -r requirements.txt

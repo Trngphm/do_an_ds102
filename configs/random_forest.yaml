@@ -1,14 +1,20 @@
 dataset:
   train:
     path: datasets/clean_data/train_data.csv
+  dev:
+    path: datasets/clean_data/dev_data.csv
   test:
     path: datasets/clean_data/test_data.csv
 
 model:
   name: RandomForest_model
   architecture: RandomForest
-  n_estimators: 200
-  max_depth: 10
-  random_state: 123
+  params:
+    n_estimators: [50, 100, 200, 300]
+    max_depth: [null, 10, 20, 30]
+    min_samples_split: [2, 5, 10]
+    min_samples_leaf: [1, 2, 4]
+    max_features: ["sqrt", "log2", null]
+    tuning_method: "random"  
 
 checkpoint_path: checkpoints/awa2_random_forest

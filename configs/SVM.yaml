@@ -1,13 +1,20 @@
 dataset:
   train:
     path: datasets/clean_data/train_data.csv
+  dev:
+    path: datasets/clean_data/dev_data.csv
   test:
     path: datasets/clean_data/test_data.csv
 
 model:
   name: SVM_model
   architecture: SVM
-  kernel: "linear"
-  C: 1.0
+  params:
+    kernel: ["linear", "rbf", "poly"]
+    C: [0.1, 1, 10, 100]
+    gamma: ["scale", "auto", 0.1, 1]
+    tuning_method: "grid"
 
 checkpoint_path: checkpoints/awa2_svm
+
+task: MLClassificationTask

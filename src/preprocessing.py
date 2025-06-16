@@ -7,9 +7,9 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import PowerTransformer
 from imblearn.over_sampling import RandomOverSampler
 import csv
-from builders.task_builder import META_TASK
+# from builders.task_builder import META_TASK
 
-@META_TASK.register()
+# @META_TASK.register()
 class Preprocessing():
     def __init__(self):
         self.data_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../datasets/raw_data/"))
@@ -111,3 +111,7 @@ class Preprocessing():
         full_df.to_csv(output_path, index=False)
 
         print(f"Đã lưu toàn bộ dữ liệu đã xử lý tại {output_path}")
+
+if __name__ == "__main__":
+    preprocess = Preprocessing()
+    preprocess.forward()
