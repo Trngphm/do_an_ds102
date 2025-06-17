@@ -1,4 +1,3 @@
-from src.preprocessing import Preprocessing
 from builders.register import Registry
 from builders.task_builder import build_task
 import yaml
@@ -15,12 +14,6 @@ def load_config(config_path):
 
 
 def main(config):
-    # preprocessing = Preprocessing()
-    # preprocessing.forward()
-
-    # split_data = SplitData()
-    # split_data.forward()
-
     # Build task
     task_class = META_TASK.get("MLClassificationTask")
     task = task_class(config)
@@ -55,6 +48,4 @@ if __name__ == "__main__":
     config = load_config(args.config)
     main(config)
 
-# python3 main.py --config configs/SVM.yaml
-# python3 main.py --config configs/logistic_regression.yaml
-# pip install -r requirements.txt
+

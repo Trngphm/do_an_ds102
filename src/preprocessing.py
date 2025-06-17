@@ -112,6 +112,3 @@ class Preprocessing():
 
         print(f"Đã lưu toàn bộ dữ liệu đã xử lý tại {output_path}")
 
-if __name__ == "__main__":
-    preprocess = Preprocessing()
-    preprocess.forward()
