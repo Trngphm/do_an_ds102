@@ -92,23 +92,28 @@ class Preprocessing():
         test_df_scaled['filename'] = test_df['filename'].values
         test_df_scaled['class_name'] = test_df['class_name'].values
 
-        # 9. Lưu lại
+        # 9. Gán cột split cho từng tập
         train_oversampled['split'] = 'train'
         val_df_scaled['split'] = 'dev'
         test_df_scaled['split'] = 'test'
 
+        # 10. Tạo phiên bản đã loại bỏ 3 cột filename, class_name, split cho từng tập
+        train_clean = train_oversampled.drop(columns=['filename', 'class_name', 'split'])
+        val_clean = val_df_scaled.drop(columns=['filename', 'class_name', 'split'])
+        test_clean = test_df_scaled.drop(columns=['filename', 'class_name', 'split'])
+
+        # 11. Lưu lại train/dev/test
         os.makedirs("datasets/clean_data", exist_ok=True)
-        train_oversampled.to_csv("datasets/clean_data/train_data.csv", index=False)
-        val_df_scaled.to_csv("datasets/clean_data/dev_data.csv", index=False)
-        test_df_scaled.to_csv("datasets/clean_data/test_data.csv", index=False)
+        train_clean.to_csv("datasets/clean_data/train_data.csv", index=False)
+        val_clean.to_csv("datasets/clean_data/dev_data.csv", index=False)
+        test_clean.to_csv("datasets/clean_data/test_data.csv", index=False)
 
-        print("Đã lưu train/dev/test đã xử lý tại datasets/clean_data/")
+        print("Đã lưu train/dev/test tại datasets/clean_data/")
 
-        # Gộp tất cả thành một DataFrame
+        # 12. Gộp tất cả thành một DataFrame đầy đủ 
         full_df = pd.concat([train_oversampled, val_df_scaled, test_df_scaled], ignore_index=True)
         output_path = "datasets/preprocessing_data/clean_data.csv"
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         full_df.to_csv(output_path, index=False)
 
         print(f"Đã lưu toàn bộ dữ liệu đã xử lý tại {output_path}")
-
