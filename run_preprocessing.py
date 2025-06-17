@@ -1,5 +1,5 @@
 import os
-from preprocessing import Preprocessing
+from src.preprocessing import Preprocessing
 
 def main():
     # Kiểm tra xem dữ liệu đã tồn tại chưa
