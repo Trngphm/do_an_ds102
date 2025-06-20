@@ -49,3 +49,4 @@ if __name__ == "__main__":
     main(config)
 
 
+# python3 main.py --config configs/SVM.yaml
