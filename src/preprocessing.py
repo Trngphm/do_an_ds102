@@ -20,7 +20,6 @@ class Preprocessing():
         self.features_txt = self.zip_internal_dir + "AwA2-features.txt"
         self.labels_txt = self.zip_internal_dir + "AwA2-labels.txt"
         self.filenames_txt = self.zip_internal_dir + "AwA2-filenames.txt"
-
     def forward(self):
         # 1. Load features
         if not os.path.exists(self.npy_path):
@@ -54,6 +53,17 @@ class Preprocessing():
         df['label'] = labels
         df['filename'] = filenames
         df['class_name'] = df['label'].map(id2name)
+
+        # Lưu dữ liệu gốc trước khi chia
+        os.makedirs("datasets/original_data", exist_ok=True)
+        df.to_csv("datasets/original_data/full_raw_data.csv", index=False)
+        print("Đã lưu dữ liệu gốc chưa chia tại datasets/original_data/full_raw_data.csv")
+
+        # Kiểm tra dữ liệu khớp
+        print("Đang kiểm tra độ khớp giữa filename, label và feature...")
+
+        if not (len(features) == len(labels) == len(filenames)):
+            raise ValueError(f"Số lượng không khớp: features={len(features)}, labels={len(labels)}, filenames={len(filenames)}")
 
         # 5. Chia dữ liệu
         train_df, temp_df = train_test_split(df, test_size=0.3, stratify=df['label'], random_state=42)
@@ -110,10 +120,11 @@ class Preprocessing():
 
         print("Đã lưu train/dev/test tại datasets/clean_data/")
 
-        # 12. Gộp tất cả thành một DataFrame đầy đủ 
+        # 12. Gộp tất cả thành một DataFrame đầy đủ
         full_df = pd.concat([train_oversampled, val_df_scaled, test_df_scaled], ignore_index=True)
         output_path = "datasets/preprocessing_data/clean_data.csv"
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         full_df.to_csv(output_path, index=False)
 
         print(f"Đã lưu toàn bộ dữ liệu đã xử lý tại {output_path}")
+    
